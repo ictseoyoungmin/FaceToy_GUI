@@ -45,7 +45,39 @@ def test_case(test_id,test_data):
 
 
 if __name__ == "__main__":
-    test_case(0,'asd')
-    test_case(1,'http://192.168.0.33:4747/video')
+    # test_case(0,'asd')
+    # test_case(1,'http://192.168.0.33:4747/video')
 
 ##################################
+
+    import mediapipe as mp
+    import cv2
+
+    # 이미지 로드
+    img = cv2.imread('images.jpg')
+
+    # FaceMesh 모델 로드
+    mpFaceMesh = mp.solutions.face_mesh
+    faceMesh = mpFaceMesh.FaceMesh()
+
+    # 랜드마크 그리기 위한 Drawing Utils 모듈 로드
+    mpDraw = mp.solutions.drawing_utils
+
+    # 이미지에서 얼굴 인식 및 랜드마크 검출
+    results = faceMesh.process(img)
+
+    # 얼굴 랜드마크 추출
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            mpDraw.draw_landmarks(
+                img, 
+                face_landmarks, 
+                mpFaceMesh.FACEMESH_TESSELATION, # FACE_CONNECTIONS -> FACEMESH_TESSELATION
+                landmark_drawing_spec=mpDraw.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1),
+                connection_drawing_spec=mpDraw.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1)
+            )
+
+    # 이미지 출력
+    cv2.imshow('Face Mesh', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
