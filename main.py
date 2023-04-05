@@ -23,15 +23,16 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Config Values
-        # Frame Handler
-        self.frame_handler = 0
+        # Frame Handler 
+        self.frame_handler = 2
 
         # Set up the UI
         self.setWindowTitle("Face Landmarks Detection")
         self.setGeometry(100, 100, 640, 480)
 
         # Set up the video capture
-        self.video = cv2.VideoCapture('http://192.168.0.33:4747/video')
+        # self.video = cv2.VideoCapture('http://192.168.0.33:4747/video')
+        self.video = cv2.VideoCapture(0)
         self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
@@ -58,7 +59,8 @@ class MainWindow(QMainWindow):
         self.label.setObjectName("label")
     
     # bounding box test
-    def test_m1(self,frame):
+    @staticmethod
+    def test_m1(frame):
         height, width = 100,20
 
         thickness = 5  # 바운딩 박스 두께
@@ -69,7 +71,8 @@ class MainWindow(QMainWindow):
         return frame
     
     # lib test
-    def test_m2(self,frame):
+    @staticmethod
+    def test_m2(frame):
         # faces, confidences = cvlib.detect_face(frame)
         # print(np.shape(faces))
         # for face in faces:
@@ -81,8 +84,10 @@ class MainWindow(QMainWindow):
         #     cv2.rectangle(frame, (startX,startY), (endX,endY), (0,255,0), 2)
         return frame
 
-    def test_m3(self,frame):
+    @staticmethod
+    def test_m3(frame):
         re = faceMesh.process(frame)
+        frame = np.zeros_like(frame)
         if re.multi_face_landmarks:
             for faceLms in re.multi_face_landmarks:
                 mpDraw.draw_landmarks(frame, faceLms, mpFaceMesh.FACEMESH_TESSELATION,
@@ -90,15 +95,24 @@ class MainWindow(QMainWindow):
 
         return frame
 
-    def processing(self,frame_handler,frame):
-            methods = [self.test_m1,self.test_m2,self.test_m3]
-            return methods[frame_handler](frame)
+    def processing(self,frame):
+        methods = [self.test_m1,self.test_m2,self.test_m3]
+        return methods[self.frame_handler](frame)
+    
+    @staticmethod
+    def plot_fps(frame,pTime,loc=(20,80),font_face=cv2.FONT_HERSHEY_PLAIN,font_scale=1,color=(255,0,0),thinkness=2):
+        cTime = time.time()
+        fps = 1/(cTime-pTime)
+        pTime = cTime
+        cv2.putText(frame,f'FPS: {int(fps)}',loc,font_face,font_scale,color,thinkness)
+        return frame,pTime
     
     def update_frame(self):
         pTime = 0
         # Read a frame from the video capture
         while True:
             ret, frame = self.video.read()
+
             # frame = cv2.imread('./images.jpg')
             # ret = 1
             # Read a frame and apply method
@@ -106,13 +120,10 @@ class MainWindow(QMainWindow):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
                 # Image Processing
-                frame = self.processing(self.frame_handler,frame)
+                frame = self.processing(frame)
 
                 # FPS
-                cTime = time.time()
-                fps = 1/(cTime-pTime)
-                pTime = cTime
-                cv2.putText(frame,f'FPS: {int(fps)}',(20,80),cv2.FONT_HERSHEY_PLAIN,1,(255,0,0),1)
+                frame, pTime = self.plot_fps(frame,pTime)
 
                 image = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
                 pixmap = QPixmap.fromImage(image)
@@ -125,7 +136,6 @@ class MainWindow(QMainWindow):
 
 
     def button1_clicked(self):
-
         print('btn1 clk')
         self.frame_handler = 0
 
