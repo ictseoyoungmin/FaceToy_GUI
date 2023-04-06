@@ -6,7 +6,7 @@ __pycache__/
 # data
 *.jpg
 *.png
-
+*.jfif
 # C extensions
 *.so
 

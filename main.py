@@ -67,8 +67,8 @@ class MainWindow(QMainWindow):
         color = (0, 255, 0)  # 바운딩 박스 색상
        
         cv2.rectangle(frame, (100, 180+height - thickness), (width, height), color, thickness)  # 아래쪽 모서리
-
         return frame
+    
     
     # lib test
     @staticmethod
