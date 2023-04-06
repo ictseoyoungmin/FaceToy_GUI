@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
             for faceLms in re.multi_face_landmarks:
                 mpDraw.draw_landmarks(frame, faceLms, mpFaceMesh.FACEMESH_TESSELATION,
                                       drawSpec,drawSpec)
-
+                # print(faceLms)
         return frame
 
     def processing(self,frame):

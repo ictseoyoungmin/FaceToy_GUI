@@ -1,5 +1,5 @@
 import cv2
-
+import numpy as np
 
 
 ##################################
@@ -55,7 +55,10 @@ if __name__ == "__main__":
 
     # 이미지 로드
     img = cv2.imread('images.jpg')
+    print(img.shape)
+    img= cv2.resize(img,(img.shape[1]*2,img.shape[0]*2))
 
+    
     # FaceMesh 모델 로드
     mpFaceMesh = mp.solutions.face_mesh
     faceMesh = mpFaceMesh.FaceMesh()
@@ -76,7 +79,18 @@ if __name__ == "__main__":
                 landmark_drawing_spec=mpDraw.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1),
                 connection_drawing_spec=mpDraw.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1)
             )
+        face_landmarks1 = results.multi_face_landmarks[0]
+    
+    landmarks_points = []
+    for i in face_landmarks1.landmark:
+        landmarks_points.append((i.x,i.y))
 
+    points = np.array(landmarks_points)
+    print(points.shape)
+    
+    convexhull = cv2.convexHull(points)
+    print(convexhull)
+    
     # 이미지 출력
     cv2.imshow('Face Mesh', img)
     cv2.waitKey(0)
