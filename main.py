@@ -31,8 +31,8 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 640, 480)
 
         # Set up the video capture
-        # self.video = cv2.VideoCapture('http://192.168.0.33:4747/video')
-        self.video = cv2.VideoCapture(0)
+        self.video = cv2.VideoCapture('http://192.168.0.33:4747/video')
+        # self.video = cv2.VideoCapture(0)
         self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
