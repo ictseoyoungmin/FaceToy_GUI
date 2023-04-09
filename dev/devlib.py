@@ -3,7 +3,7 @@ import time
 import math
 import numpy as np
 import cv2
-
+import matplotlib.pyplot as plt
 import mediapipe as mp
 
 __all__ = ['imgs_read_rgb','imgs_get_landmarks']
@@ -230,4 +230,25 @@ def get_idx_to_coordinates(img):
     else:
         return None 
        
+def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_RIGHT_EYE):
+    a = np.zeros_like(img)
+    for conn in connection:
+        start_idx = conn[0]
+        end_idx = conn[1]
+        cv2.line(a,idx_to_coordinates[start_idx],idx_to_coordinates[end_idx],color=(255,255,255))        
+        # cv2.circle(a,idx_to_coordinates[start_idx],radius=1, color=(255,255,255))        
+        # cv2.circle(a,idx_to_coordinates[end_idx],radius=1,color=(255,255,255))        
 
+    plt.imshow(a)
+
+def rotate_img(img,angle=15):
+    height, width = img.shape[:2]
+    center = (width/2, height/2)
+
+    # 회전을 위한 변환 행렬 구하기
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+    # 이미지 회전하기
+    out_img = cv2.warpAffine(img, M, (width, height))
+    # plt.imshow(out_img)
+    return out_img
