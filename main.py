@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
 
     def button1_clicked(self):
         print('btn1')
-        self.handler = 0
+        self.handler = 3
 
     def button2_clicked(self):
         print('btn2')

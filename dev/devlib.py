@@ -22,7 +22,8 @@ __all__ = ['imgs_read_rgb',
            'vis_triangle_list',
            'get_triangulation',
            'get_triangle_list',
-
+           'morph_images',
+           'get_masked_frame'
            ]
 
 mpFaceMesh = mp.solutions.face_mesh
@@ -274,6 +275,14 @@ def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_LEFT_E
         # cv2.circle(a,idx_to_coordinates[start_idx],radius=1, color=(255,255,255))        
         # cv2.circle(a,idx_to_coordinates[end_idx],radius=1,color=(255,255,255))        
     plt.imshow(a)
+    return a
+
+def get_masked_frame(frame,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_LEFT_EYE,color=(0,0,0),thickness=8):
+    # mask = np.zeros(frame.shape[:2],dtype=frame.dtype)
+    # cv2.fillConvexPoly(mask,np.int32(get_connection_points(idx_to_coordinates,connection)),(255,255,255))
+    # frame = cv2.bitwise_and(frame,frame,mask=mask)
+    cv2.drawContours(frame,[get_connection_points(idx_to_coordinates,connection)],0,color,thickness)
+    return frame
 
 def get_idx_to_coordinates(img):
     '''
@@ -289,7 +298,6 @@ def get_idx_to_coordinates(img):
     plt.imshow(a)
     '''
     scale = 1
-    #img = cv2.resize(img,(img.shape[1]*2,img.shape[0]*2))
     image_cols, image_rows = img.shape[1]*scale,img.shape[0]*scale 
     landmark_list = []
     with mp.solutions.face_mesh.FaceMesh() as face_mesh:
@@ -297,7 +305,8 @@ def get_idx_to_coordinates(img):
         if results.multi_face_landmarks:
             for face_landmarks in results.multi_face_landmarks:
                 landmark_list.append(face_landmarks)
-                
+        else:
+            return None        
     idx_to_coordinates = {}
     points = []
     for idx,landmark in enumerate(landmark_list[0].landmark):
@@ -346,7 +355,7 @@ def align(img,idx_to_coordinates,scale,show= False):
     out_img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]),
                             flags=cv2.INTER_CUBIC)
     # out_img = out_img[landmarks[:, 1].min():landmarks[:, 1].max(),
-    #             landmarks[:, 0].min():landmarks[:, 0].max()]
+        #             landmarks[:, 0].min():landmarks[:, 0].max()]
     if show:
         plt.imshow(out_img)
     return out_img

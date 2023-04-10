@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append('./dev')
+
 import time
 import math
 import numpy as np
@@ -5,7 +9,8 @@ import cv2
 
 import mediapipe as mp
 
-from dev.devlib import *
+# from dev.devlib import *
+from dev.f1 import *
 
 # Load the face mesh model
 mpFaceMesh = mp.solutions.face_mesh
@@ -44,10 +49,17 @@ def test_m3(frame):
         
     return frame
 
+def test_m4(frame):
+    frame = face_align(frame)
+    return frame
+
+### func ########################################################################
 
 def processing(frame,handler):
-    methods = [test_m1,test_m2,test_m3]
+    methods = [test_m1,test_m2,test_m3,test_m4]
     return methods[handler](frame)
+
+#################################################################################
 
 def plot_fps(frame,pTime,loc=(20,80),font_face=cv2.FONT_HERSHEY_PLAIN,font_scale=1,color=(255,0,0),thinkness=2):
     cTime = time.time()
@@ -56,23 +68,21 @@ def plot_fps(frame,pTime,loc=(20,80),font_face=cv2.FONT_HERSHEY_PLAIN,font_scale
     cv2.putText(frame,f'FPS: {int(fps)}',loc,font_face,font_scale,color,thinkness)
     return frame,pTime
 
-# mpDraw.draw_landmarks() 함수 일부 문장 복사
 def normalized_to_pixel_coordinates(
     normalized_x: float, normalized_y: float, image_width: int,
     image_height: int) :
-  """Converts normalized value pair to pixel coordinates."""
+    """Converts normalized value pair to pixel coordinates."""
 
-  # Checks if the float value is between 0 and 1.
-  def is_valid_normalized_value(value: float) -> bool:
-    return (value > 0 or math.isclose(0, value)) and (value < 1 or
-                                                      math.isclose(1, value))
+    # Checks if the float value is between 0 and 1.
+    def is_valid_normalized_value(value: float) -> bool:
+        return (value > 0 or math.isclose(0, value)) and (value < 1 or math.isclose(1, value))
 
-  if not (is_valid_normalized_value(normalized_x) and
+    if not (is_valid_normalized_value(normalized_x) and 
           is_valid_normalized_value(normalized_y)):
-    return None
-  x_px = min(math.floor(normalized_x * image_width), image_width - 1)
-  y_px = min(math.floor(normalized_y * image_height), image_height - 1)
-  return x_px, y_px
+        return None
+    x_px = min(math.floor(normalized_x * image_width), image_width - 1)
+    y_px = min(math.floor(normalized_y * image_height), image_height - 1)
+    return x_px, y_px
 
 # face landmarks detection and get points
 def getPoints(img,cvt_color=None,return_cvt_img=False):
@@ -82,12 +92,10 @@ def getPoints(img,cvt_color=None,return_cvt_img=False):
          
     result = faceMesh.process(img) # one landmarks of faces 
     
-    # landmarks x,y pair
     points = []
     if result.multi_face_landmarks:
         for landmark in result.multi_face_landmarks[0].landmark: # normalized x,y,z points
             points.append(normalized_to_pixel_coordinates(landmark.x,landmark.y,img_cols,img_rows))
-            # print(landmark.x,landmark.y)
     if return_cvt_img:
         return points, img
     else:
@@ -168,3 +176,6 @@ def swapFace(frame,source_path='./dev/images.jpg'):
     output = cv2.seamlessClone(np.uint8(frame_draw),frame,mask,center,cv2.NORMAL_CLONE)
     
     return output
+
+### align ######################################
+
