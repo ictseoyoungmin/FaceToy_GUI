@@ -6,7 +6,14 @@ import cv2
 import matplotlib.pyplot as plt
 import mediapipe as mp
 
-__all__ = ['imgs_read_rgb','imgs_get_landmarks']
+__all__ = ['imgs_read_rgb',
+           'imgs_get_landmarks',
+           'normalized_to_pixel_coordinates',
+           'rotate_img',
+           'get_connection_points',
+           'vis_coordinates',
+           'get_idx_to_coordinates'
+           ]
 
 mpFaceMesh = mp.solutions.face_mesh
 faceMesh = mpFaceMesh.FaceMesh(max_num_faces=10,min_detection_confidence=0.7)
@@ -194,6 +201,44 @@ def warpTriangle(img1,img2,pts1,pts2):
     
     img2[y2:y2+h2, x2:x2+w2] = roi2_masked
     
+       
+def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_RIGHT_EYE):
+    a = np.zeros_like(img)
+    for conn in connection:
+        start_idx = conn[0]
+        end_idx = conn[1]
+        cv2.line(a,idx_to_coordinates[start_idx],idx_to_coordinates[end_idx],color=(255,255,255))        
+        # cv2.circle(a,idx_to_coordinates[start_idx],radius=1, color=(255,255,255))        
+        # cv2.circle(a,idx_to_coordinates[end_idx],radius=1,color=(255,255,255))        
+
+    plt.imshow(a)
+
+def rotate_img(img,angle=15):
+    height, width = img.shape[:2]
+    center = (width/2, height/2)
+
+    # 회전을 위한 변환 행렬 구하기
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+    # 이미지 회전하기
+    out_img = cv2.warpAffine(img, M, (width, height))
+    # plt.imshow(out_img)
+    return out_img
+
+# FACEMESH_RIGHT_EYE(32,2,2)
+def get_connection_points(idx_to_coordinates,connection):
+    return np.array([[idx_to_coordinates[conn[0]],idx_to_coordinates[conn[1]]] for conn in connection]).reshape(-1,2)
+
+def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_LEFT_EYE):
+    a = np.zeros_like(img)
+    for conn in connection:
+        start_idx = conn[0]
+        end_idx = conn[1]
+        cv2.line(a,idx_to_coordinates[start_idx],idx_to_coordinates[end_idx],color=(255,125,0))        
+        # cv2.circle(a,idx_to_coordinates[start_idx],radius=1, color=(255,255,255))        
+        # cv2.circle(a,idx_to_coordinates[end_idx],radius=1,color=(255,255,255))        
+    plt.imshow(a)
+
 def get_idx_to_coordinates(img):
     '''
     a = np.zeros_like(img)   
@@ -226,29 +271,6 @@ def get_idx_to_coordinates(img):
             idx_to_coordinates[idx] = landmark_px
             points.append(landmark_px)
     if idx_to_coordinates:
-        return idx_to_coordinates,points
+        return idx_to_coordinates,np.array(points)
     else:
         return None 
-       
-def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_RIGHT_EYE):
-    a = np.zeros_like(img)
-    for conn in connection:
-        start_idx = conn[0]
-        end_idx = conn[1]
-        cv2.line(a,idx_to_coordinates[start_idx],idx_to_coordinates[end_idx],color=(255,255,255))        
-        # cv2.circle(a,idx_to_coordinates[start_idx],radius=1, color=(255,255,255))        
-        # cv2.circle(a,idx_to_coordinates[end_idx],radius=1,color=(255,255,255))        
-
-    plt.imshow(a)
-
-def rotate_img(img,angle=15):
-    height, width = img.shape[:2]
-    center = (width/2, height/2)
-
-    # 회전을 위한 변환 행렬 구하기
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-
-    # 이미지 회전하기
-    out_img = cv2.warpAffine(img, M, (width, height))
-    # plt.imshow(out_img)
-    return out_img
