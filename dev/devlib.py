@@ -10,9 +10,19 @@ __all__ = ['imgs_read_rgb',
            'imgs_get_landmarks',
            'normalized_to_pixel_coordinates',
            'rotate_img',
+           'getPoints',
+           'getTriangles',
+           'warpTriangle',
            'get_connection_points',
            'vis_coordinates',
-           'get_idx_to_coordinates'
+           'get_idx_to_coordinates',
+           'get_eye_center',
+           'get_angle',
+           'align',
+           'vis_triangle_list',
+           'get_triangulation',
+           'get_triangle_list',
+
            ]
 
 mpFaceMesh = mp.solutions.face_mesh
@@ -84,25 +94,51 @@ def morph_images(image1, image2, landmarks1, landmarks2, alpha=0.5):
 
     return morphed_image_roi
 
+def vis_triangle_list(triangle_list,w=178,h=119):
+    # Create an empty image
+    img = np.zeros((h, w, 3), np.uint8)
+
+    # Draw each triangle in a random color
+    for i in range(len(triangle_list)):
+        # Get the indices of the three vertices of the triangle
+        triangle = triangle_list[i]
+        pt1 = (np.int32(triangle[0]), np.int32(triangle[1]))
+        pt2 = (np.int32(triangle[2]), np.int32(triangle[3]))
+        pt3 = (np.int32(triangle[4]), np.int32(triangle[5]))
+
+        # Choose a random color for this triangle
+        color = (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+
+        # Fill the triangle with the color
+        cv2.fillConvexPoly(img, np.array([pt1, pt2, pt3],dtype=np.int32), color)
+        # Draw the boundary of the triangle
+        # cv2.polylines(img, [pt1, pt2, pt3], , (0, 0, 0), thickness=1)
+    plt.imshow(img)
+    plt.show()
+    return img
+
+def get_triangle_list(landmarks1, landmarks2):
+    # Create an empty rectangle that covers both images
+    rectangle = (0, 0, max(landmarks1.max(axis=0)[0], landmarks2.max(axis=0)[0])+1,
+                 max(landmarks1.max(axis=0)[1], landmarks2.max(axis=0)[1])+1)
+    # Create a subdiv object
+    subdiv = cv2.Subdiv2D(rectangle)
+    # Insert landmarks into subdiv object
+    for landmarks in [landmarks1, landmarks2]:
+        for point in landmarks:
+            subdiv.insert(np.int16((point[0], point[1])))
+
+    # Get Delaunay triangulation as a list of triangles
+    triangle_list = subdiv.getTriangleList()
+    
+    return triangle_list
+
 def get_triangulation(landmarks1, landmarks2):
     """
     Given two sets of corresponding landmarks, computes and returns their Delaunay triangulation.
     """
-    # Create an empty rectangle that covers both images
-    rectangle = (0, 0, max(landmarks1.max(axis=0)[0], landmarks2.max(axis=0)[0]),
-                 max(landmarks1.max(axis=0)[1], landmarks2.max(axis=0)[1]))
-    print(rectangle)
-    # Create a subdiv object
-    subdiv = cv2.Subdiv2D(rectangle)
-
-    # Insert landmarks into subdiv object
-    for landmarks in [landmarks1, landmarks2]:
-        for point in landmarks:
-            subdiv.insert((point[0], point[1]))
-
-    # Get Delaunay triangulation as a list of triangles
-    triangle_list = subdiv.getTriangleList()
-
+    
+    triangle_list = get_triangle_list(landmarks1, landmarks2)
     # Create a list of triangle indices based on the landmark indices
     delaunay_triangles = []
     for triangle in triangle_list:
@@ -112,9 +148,10 @@ def get_triangulation(landmarks1, landmarks2):
                 if np.allclose(triangle[i*2], pt[:,0]) and np.allclose(triangle[i*2+1], pt[:,1]):
                     indices.append(j * len(landmarks1) + np.where((pt[:, 0] == triangle[i*2]) &
                                                                   (pt[:, 1] == triangle[i*2+1]))[0][0])
+                    print('s')
         if len(indices) == 3:
             delaunay_triangles.append(tuple(indices))
-
+            
     return delaunay_triangles     
      
         
@@ -142,13 +179,10 @@ def getPoints(img,cvt_color=None,return_cvt_img=False):
         img = cv2.cvtColor(img,cvt_color)
          
     result = faceMesh.process(img) # one landmarks of faces 
-    
-    # landmarks x,y pair
     points = []
     if result.multi_face_landmarks:
         for landmark in result.multi_face_landmarks[0].landmark: # normalized x,y,z points
             points.append(normalized_to_pixel_coordinates(landmark.x,landmark.y,img_cols,img_rows))
-            # print(landmark.x,landmark.y)
     if return_cvt_img:
         return points, img
     else:
@@ -201,7 +235,9 @@ def warpTriangle(img1,img2,pts1,pts2):
     
     img2[y2:y2+h2, x2:x2+w2] = roi2_masked
     
-       
+
+### face align ##########################################################       
+
 def vis_coordinates(img,idx_to_coordinates,connection=mpFaceMesh.FACEMESH_RIGHT_EYE):
     a = np.zeros_like(img)
     for conn in connection:
@@ -274,3 +310,44 @@ def get_idx_to_coordinates(img):
         return idx_to_coordinates,np.array(points)
     else:
         return None 
+    
+def get_eye_center(left_eye,right_eye):
+    '''
+    return:
+        ndarray:
+        left_eye_center,
+        right_eye_center,
+        eyes_center
+    '''
+
+    leftEyeCenter = left_eye.mean(axis=0)
+    rightEyeCenter = right_eye.mean(axis=0)
+    eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
+                (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
+    return leftEyeCenter,rightEyeCenter, np.array(eyesCenter,dtype=np.float16)
+
+def get_angle(pts1,pts2):
+    dY = pts1[1] - pts2[1]
+    dX = pts1[0] - pts2[0]
+    angle = np.degrees(np.arctan2(dY, dX))
+    if dX < 0:
+        angle -= 180
+    return angle
+
+def align(img,idx_to_coordinates,scale,show= False):
+    connections = [mpFaceMesh.FACEMESH_LEFT_EYE,mpFaceMesh.FACEMESH_RIGHT_EYE]
+    left_eye = get_connection_points(idx_to_coordinates,connections[0])
+    right_eye = get_connection_points(idx_to_coordinates,connections[1])
+
+    leftEyeCenter, rightEyeCenter, eyesCenter = get_eye_center(left_eye,right_eye)
+    angle = get_angle(rightEyeCenter,leftEyeCenter)
+
+    M = cv2.getRotationMatrix2D(eyesCenter, angle, scale)
+    out_img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]),
+                            flags=cv2.INTER_CUBIC)
+    # out_img = out_img[landmarks[:, 1].min():landmarks[:, 1].max(),
+    #             landmarks[:, 0].min():landmarks[:, 0].max()]
+    if show:
+        plt.imshow(out_img)
+    return out_img
+

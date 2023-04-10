@@ -5,6 +5,8 @@ import cv2
 
 import mediapipe as mp
 
+from dev.devlib import *
+
 # Load the face mesh model
 mpFaceMesh = mp.solutions.face_mesh
 faceMesh = mpFaceMesh.FaceMesh(max_num_faces=10,min_detection_confidence=0.7)
@@ -94,7 +96,7 @@ def getPoints(img,cvt_color=None,return_cvt_img=False):
 # Delaunay triangulation
 def getTriangles(img,points):
     h,w = img.shape[:2]
-    subdiv = cv2.Subdiv2D((0,0,w,h));
+    subdiv = cv2.Subdiv2D((0,0,w,h))
     subdiv.insert(points)
     triangleList = subdiv.getTriangleList()
     triangles = []
